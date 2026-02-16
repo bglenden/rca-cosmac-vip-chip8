@@ -2,6 +2,8 @@
 
 A TypeScript CHIP-8 interpreter for browser and headless testing, faithful to the RCA COSMAC VIP. **VIP Programmable Spacefighters** is pre-loaded and ready to play from the ROM dropdown.
 
+**Play it now:** https://bglenden.github.io/rca-cosmac-vip-chip8/
+
 ## Current State
 
 - Core CPU implementation is complete for classic CHIP-8 plus multiplayer extensions used by Spacefighters (`00An` player/sync family and `00B0` shared mode).
