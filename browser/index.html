@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CHIP-8</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0a0a0a;
+      background-image: radial-gradient(ellipse at 50% 0%, #151515 0%, #0a0a0a 70%);
+      color: #ccc;
+      font-family: monospace;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem;
+      gap: 1rem;
+      min-height: 100vh;
+    }
+    .logo {
+      color: #33ff66;
+      font-size: 1.15rem;
+      font-weight: 700;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      text-align: center;
+      text-shadow:
+        0 0 6px rgba(51, 255, 102, 0.6),
+        0 0 20px rgba(51, 255, 102, 0.25),
+        0 0 40px rgba(51, 255, 102, 0.1);
+    }
+    .logo .dim { color: #1a7a33; }
+    .main-layout {
+      display: flex;
+      gap: 2rem;
+      align-items: flex-start;
+      justify-content: center;
+    }
+    .emulator-panel {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+    }
+    .crt-screen {
+      position: relative;
+      border: 2px solid #33ff66;
+      border-radius: 3px;
+      box-shadow:
+        0 0 6px rgba(51, 255, 102, 0.4),
+        0 0 20px rgba(51, 255, 102, 0.15),
+        0 0 50px rgba(51, 255, 102, 0.06),
+        inset 0 0 8px rgba(0, 0, 0, 0.4);
+    }
+    .crt-screen::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        to bottom,
+        transparent 0px,
+        transparent 2px,
+        rgba(0, 0, 0, 0.08) 2px,
+        rgba(0, 0, 0, 0.08) 4px
+      );
+      pointer-events: none;
+      border-radius: 2px;
+    }
+    canvas {
+      display: block;
+      image-rendering: pixelated;
+    }
+    .controls {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: center;
+      max-width: min(100%, 700px);
+    }
+    input[type="file"] { display: none; }
+    #rom-select {
+      background: #1a1a1a;
+      color: #ccc;
+      border: 1px solid #444;
+      border-radius: 4px;
+      padding: 0.35rem 0.5rem;
+      font: inherit;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+    #rom-select:focus-visible {
+      outline: 1px solid #33ff66;
+      outline-offset: 1px;
+    }
+    #status {
+      color: #888;
+      font-size: 0.9rem;
+      text-align: center;
+      flex: 1 1 100%;
+      line-height: 1.35;
+    }
+    .keymap {
+      color: #999;
+      line-height: 1.4;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: clamp(0.2rem, 0.8vh, 0.45rem);
+    }
+    .keymap h3 {
+      color: #33ff66;
+      font-size: 1.05rem;
+    }
+    .keymap .keymap-hint {
+      color: #6f6f6f;
+      font-size: clamp(0.62rem, 1.35vh, 0.75rem);
+      margin-top: -0.15rem;
+    }
+    .chip8-keypad {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: clamp(0.22rem, 0.9vh, 0.45rem);
+    }
+    .keymap .key {
+      color: #8f8f8f;
+      font-weight: normal;
+      border: 1px solid #444;
+      border-radius: 6px;
+      background: #1a1a1a;
+      min-width: clamp(2.35rem, 6.3vh, 3.4rem);
+      min-height: clamp(2.35rem, 6.3vh, 3.4rem);
+      appearance: none;
+      cursor: pointer;
+      padding: clamp(0.12rem, 0.5vh, 0.3rem);
+      font: inherit;
+      touch-action: manipulation;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.1rem;
+    }
+    .keymap .key.active,
+    .keymap .key:active {
+      background: #33ff66;
+      border-color: #33ff66;
+      box-shadow: 0 0 8px rgba(51, 255, 102, 0.5);
+    }
+    .keymap .key:focus-visible {
+      outline: 1px solid #33ff66;
+      outline-offset: 1px;
+    }
+    .keymap .key .chip-label {
+      color: #33ff66;
+      font-size: clamp(0.95rem, 2.45vh, 1.35rem);
+      font-weight: 700;
+      line-height: 1;
+    }
+    .keymap .key .host-label {
+      color: #6f6f6f;
+      font-size: clamp(0.54rem, 1.25vh, 0.72rem);
+      line-height: 1;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+    }
+    .keymap .key.active .chip-label,
+    .keymap .key:active .chip-label {
+      color: #111;
+    }
+    .keymap .key.active .host-label,
+    .keymap .key:active .host-label {
+      color: #1c3c2a;
+    }
+    #sidebar {
+      display: none;
+      width: clamp(260px, 31vw, 440px);
+      min-width: 240px;
+      border: 1px solid #2a2a2a;
+      border-left: 2px solid #1a5c2e;
+      border-radius: 4px;
+      padding: 1rem 1.1rem;
+      background: #121212;
+      font-size: 0.9rem;
+      line-height: 1.58;
+      overflow-y: auto;
+      align-self: stretch;
+      max-height: calc(100vh - 4rem);
+    }
+    #sidebar.visible { display: block; }
+    #sidebar h2 {
+      color: #33ff66;
+      font-size: 0.95rem;
+      margin: 0.8rem 0 0.3rem 0;
+    }
+    #sidebar h2:first-child { margin-top: 0; }
+    #sidebar p {
+      color: #aaa;
+      margin: 0.2rem 0;
+      white-space: pre-wrap;
+    }
+    @media (max-width: 1180px) {
+      #sidebar {
+        width: clamp(240px, 29vw, 360px);
+        font-size: 0.84rem;
+      }
+    }
+    @media (max-height: 980px) {
+      body {
+        padding: 1rem 1.25rem;
+        gap: 0.6rem;
+      }
+      .main-layout {
+        gap: 1.25rem;
+      }
+      .emulator-panel {
+        gap: 0.6rem;
+      }
+      .controls {
+        gap: 0.6rem;
+      }
+      #status {
+        font-size: 0.82rem;
+      }
+      .keymap {
+        gap: clamp(0.16rem, 0.6vh, 0.3rem);
+      }
+      .keymap h3 {
+        font-size: 0.92rem;
+      }
+      .keymap .keymap-hint {
+        display: none;
+      }
+      .chip8-keypad {
+        gap: clamp(0.18rem, 0.62vh, 0.32rem);
+      }
+      .keymap .key {
+        min-width: clamp(1.9rem, 4.75vh, 2.7rem);
+        min-height: clamp(1.9rem, 4.75vh, 2.7rem);
+        padding: clamp(0.08rem, 0.35vh, 0.2rem);
+      }
+      .keymap .key .chip-label {
+        font-size: clamp(0.78rem, 1.75vh, 1.04rem);
+      }
+      .keymap .key .host-label {
+        font-size: clamp(0.46rem, 0.85vh, 0.58rem);
+      }
+      #sidebar {
+        font-size: 0.82rem;
+      }
+    }
+    @media (max-height: 760px) {
+      .keymap .key .host-label {
+        display: none;
+      }
+    }
+    @media (max-height: 820px) {
+      .emulator-panel {
+        gap: 0.75rem;
+      }
+      .keymap h3 {
+        font-size: 0.95rem;
+      }
+    }
+    @media (max-width: 1020px) {
+      body {
+        padding: 1rem;
+        gap: 0.75rem;
+      }
+      .main-layout {
+        flex-wrap: wrap;
+        gap: 1rem;
+      }
+      #sidebar {
+        width: min(94vw, 640px);
+        max-height: min(22vh, 220px);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="main-layout">
+    <div class="emulator-panel">
+      <h1 class="logo">RCA COSMAC VIP <span class="dim">(</span>CHIP<span class="dim">-</span>8<span class="dim">)</span></h1>
+      <div class="crt-screen"><canvas id="display"></canvas></div>
+      <div class="controls">
+        <select id="rom-select">
+          <option value="">Select a ROM...</option>
+          <option value="spacefighters">Programmable Spacefighters</option>
+          <option value="__file__">Choose file...</option>
+        </select>
+        <input type="file" id="rom-file" accept=".ch8,.rom,.bin">
+        <span id="status"></span>
+      </div>
+      <div class="keymap">
+        <h3>CHIP-8 Keypad</h3>
+        <p class="keymap-hint">Click/tap a key. Small label shows your keyboard mapping.</p>
+        <div class="chip8-keypad">
+          <button type="button" class="key" data-chip-key="1" title="CHIP-8 1 (keyboard 1)"><span class="chip-label">1</span><span class="host-label">1</span></button>
+          <button type="button" class="key" data-chip-key="2" title="CHIP-8 2 (keyboard 2)"><span class="chip-label">2</span><span class="host-label">2</span></button>
+          <button type="button" class="key" data-chip-key="3" title="CHIP-8 3 (keyboard 3)"><span class="chip-label">3</span><span class="host-label">3</span></button>
+          <button type="button" class="key" data-chip-key="C" title="CHIP-8 C (keyboard 4)"><span class="chip-label">C</span><span class="host-label">4</span></button>
+          <button type="button" class="key" data-chip-key="4" title="CHIP-8 4 (keyboard Q)"><span class="chip-label">4</span><span class="host-label">Q</span></button>
+          <button type="button" class="key" data-chip-key="5" title="CHIP-8 5 (keyboard W)"><span class="chip-label">5</span><span class="host-label">W</span></button>
+          <button type="button" class="key" data-chip-key="6" title="CHIP-8 6 (keyboard E)"><span class="chip-label">6</span><span class="host-label">E</span></button>
+          <button type="button" class="key" data-chip-key="D" title="CHIP-8 D (keyboard R)"><span class="chip-label">D</span><span class="host-label">R</span></button>
+          <button type="button" class="key" data-chip-key="7" title="CHIP-8 7 (keyboard A)"><span class="chip-label">7</span><span class="host-label">A</span></button>
+          <button type="button" class="key" data-chip-key="8" title="CHIP-8 8 (keyboard S)"><span class="chip-label">8</span><span class="host-label">S</span></button>
+          <button type="button" class="key" data-chip-key="9" title="CHIP-8 9 (keyboard D)"><span class="chip-label">9</span><span class="host-label">D</span></button>
+          <button type="button" class="key" data-chip-key="E" title="CHIP-8 E (keyboard F)"><span class="chip-label">E</span><span class="host-label">F</span></button>
+          <button type="button" class="key" data-chip-key="A" title="CHIP-8 A (keyboard Z)"><span class="chip-label">A</span><span class="host-label">Z</span></button>
+          <button type="button" class="key" data-chip-key="0" title="CHIP-8 0 (keyboard X)"><span class="chip-label">0</span><span class="host-label">X</span></button>
+          <button type="button" class="key" data-chip-key="B" title="CHIP-8 B (keyboard C)"><span class="chip-label">B</span><span class="host-label">C</span></button>
+          <button type="button" class="key" data-chip-key="F" title="CHIP-8 F (keyboard V)"><span class="chip-label">F</span><span class="host-label">V</span></button>
+        </div>
+      </div>
+    </div>
+    <div id="sidebar"></div>
+  </div>
+  <script type="module" src="main.ts"></script>
+</body>
+</html>
