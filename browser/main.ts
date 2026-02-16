@@ -435,7 +435,8 @@ function renderSidebar(data: SidecarData): void {
 }
 
 async function loadSidecar(baseName: string): Promise<void> {
-  const sidecarUrl = `/roms/${baseName}.ch8.json`;
+  const base = import.meta.env.BASE_URL ?? '/';
+  const sidecarUrl = `${base}roms/${baseName}.ch8.json`;
 
   try {
     const resp = await fetch(sidecarUrl);
@@ -511,7 +512,8 @@ function readOpcode(pc: number): number {
 }
 
 async function runSpacefightersScript(script: SpacefightersScript): Promise<SpacefightersScriptResult> {
-  const romUrl = script.romUrl ?? '/roms/spacefighters.ch8';
+  const base = import.meta.env.BASE_URL ?? '/';
+  const romUrl = script.romUrl ?? `${base}roms/spacefighters.ch8`;
   await loadROMFromUrl(romUrl, script.seed ?? 42, false);
 
   const initialFxQueue = [...script.initialFxKeys];
@@ -698,7 +700,8 @@ romSelect.addEventListener('change', async () => {
   const baseName = KNOWN_ROMS[value];
   if (!baseName) return;
 
-  const url = `/roms/${baseName}.ch8`;
+  const base = import.meta.env.BASE_URL ?? '/';
+  const url = `${base}roms/${baseName}.ch8`;
   const response = await fetch(url);
   if (!response.ok) {
     statusEl.textContent = `Failed to load ROM (${response.status})`;

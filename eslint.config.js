@@ -5,7 +5,7 @@ export default tseslint.config(
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
   {
-    ignores: ['dist/', 'roms/build_spacefighters.mjs'],
+    ignores: ['dist/', 'site/', 'roms/build_spacefighters.mjs'],
   },
   {
     rules: {

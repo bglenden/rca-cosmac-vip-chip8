@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite';
 import { execSync } from 'child_process';
 import { resolve, extname } from 'path';
-import { readFileSync, existsSync } from 'fs';
+import { readFileSync, existsSync, mkdirSync, copyFileSync, readdirSync } from 'fs';
 
 const rootDir = resolve(__dirname, '..');
 const sourceFile = resolve(rootDir, 'VP-710_RCA_COSMAC_VIP_Game_Manual_Dec78.md');
@@ -14,7 +14,12 @@ const MIME_TYPES: Record<string, string> = {
   '.bin': 'application/octet-stream',
 };
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
+  base: command === 'build' ? '/rca-cosmac-vip-chip8/' : '/',
+  build: {
+    outDir: resolve(rootDir, 'site'),
+    emptyOutDir: true,
+  },
   server: {
     fs: {
       allow: ['..'],
@@ -63,5 +68,16 @@ export default defineConfig({
         }
       },
     },
+    {
+      name: 'copy-roms',
+      writeBundle(options) {
+        const outDir = options.dir ?? resolve(rootDir, 'site');
+        const destRoms = resolve(outDir, 'roms');
+        mkdirSync(destRoms, { recursive: true });
+        for (const file of readdirSync(romsDir)) {
+          copyFileSync(resolve(romsDir, file), resolve(destRoms, file));
+        }
+      },
+    },
   ],
-});
+}));
