@@ -4,6 +4,10 @@ A TypeScript CHIP-8 interpreter for browser and headless testing, faithful to th
 
 **Play it now:** https://bglenden.github.io/rca-cosmac-vip-chip8/
 
+## Background
+
+For a detailed guide to CHIP-8 and how interpreters work, see Tobias V. Langhoff's [Guide to making a CHIP-8 emulator](https://tobiasvl.github.io/blog/write-a-chip-8-emulator/).
+
 ## Current State
 
 - Core CPU implementation is complete for classic CHIP-8 plus multiplayer extensions used by Spacefighters (`00An` player/sync family and `00B0` shared mode).
