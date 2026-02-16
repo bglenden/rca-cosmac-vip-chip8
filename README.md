@@ -113,8 +113,9 @@ Notes:
 ```
 src/core/CPU.ts                    # CHIP-8 CPU execution + opcodes
 src/core/types.ts                  # Constants, interfaces, state model
+src/core/display-utils.ts          # Shared framebuffer hash + row sampling
 src/backends/                      # Canvas/WebAudio + mock backends
-src/Interpreter.ts                 # Optional interval-based orchestrator
+src/spacefighters/script-types.ts  # Shared script types + ROM-specific constants
 browser/index.html                 # Browser UI (canvas, keypad, sidebar, CRT effects)
 browser/main.ts                    # Browser runtime + test driver hook
 browser/vite.config.ts             # Vite config with ROM rebuild on change

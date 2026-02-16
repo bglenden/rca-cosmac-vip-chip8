@@ -1,5 +1,11 @@
 import { CPU } from '../src/core/CPU.js';
 import { DISPLAY_HEIGHT, DISPLAY_WIDTH, IOBus } from '../src/core/types.js';
+import { framebufferHash, sampleRows } from '../src/core/display-utils.js';
+import {
+  SCAN_ROUTINE_START, SCAN_ROUTINE_END, COMMAND_SCAN_CALLER, MAX_SCRIPT_CYCLES,
+  type FxSource, type SpacefightersScript, type FxSnapshot,
+  type ExecutionSnapshot, type SpacefightersScriptResult,
+} from '../src/spacefighters/script-types.js';
 import { CanvasDisplay } from '../src/backends/CanvasDisplay.js';
 import { WebAudio } from '../src/backends/WebAudio.js';
 import { KeyboardInput } from '../src/backends/KeyboardInput.js';
@@ -10,10 +16,6 @@ const VIRTUAL_TAP_PRESS_FRAMES = 6;
 const VIRTUAL_TAP_GAP_FRAMES = 2;
 const VIRTUAL_TAP_PRESS_CYCLES = Math.max(1, VIRTUAL_TAP_PRESS_FRAMES * CYCLES_PER_FRAME);
 const VIRTUAL_TAP_GAP_CYCLES = Math.max(1, VIRTUAL_TAP_GAP_FRAMES * CYCLES_PER_FRAME);
-const SCAN_ROUTINE_START = 0x0508;
-const SCAN_ROUTINE_END = 0x0516;
-const COMMAND_SCAN_CALLER = 0x02fc;
-const MAX_SCRIPT_CYCLES = 3_500_000;
 
 const canvas = document.getElementById('display') as HTMLCanvasElement;
 const romSelect = document.getElementById('rom-select') as HTMLSelectElement;
@@ -35,9 +37,7 @@ let cpu = new CPU();
 let running = false;
 let executedCycles = 0;
 let fitScheduled = false;
-let fitObserver: ResizeObserver | null = null;
 
-type FxSource = 'init' | 'command' | 'tail' | 'fallback';
 type VirtualTapPhase = 'idle' | 'pressed' | 'gap';
 type VirtualTapState = {
   button: HTMLButtonElement;
@@ -48,41 +48,6 @@ type VirtualTapState = {
 };
 
 const virtualTapStates = new Map<HTMLButtonElement, VirtualTapState>();
-
-interface SpacefightersScript {
-  initialFxKeys: number[];
-  commandKeys: number[];
-  tailFxKeys?: number[];
-  executionCheckpointCycles?: number[];
-  romUrl?: string;
-  seed?: number;
-}
-
-interface FxSnapshot {
-  index: number;
-  source: FxSource;
-  key: number;
-  startedAt: number;
-  consumedAt: number;
-  pc: number;
-  returnAddress: number;
-  hash: string;
-  marker: string[];
-}
-
-interface ExecutionSnapshot {
-  cycle: number;
-  pc: number;
-  hash: string;
-  marker: string[];
-}
-
-interface SpacefightersScriptResult {
-  fxSnapshots: FxSnapshot[];
-  executionSnapshots: ExecutionSnapshot[];
-  scanCommandTriggerCycles: number[];
-  autoLoopPresses: number;
-}
 
 interface Chip8TestDriver {
   reset(seed?: number): void;
@@ -97,6 +62,7 @@ interface Chip8TestDriver {
     pc: number;
     sp: number;
     waitingForKey: boolean;
+    waitingKeyPhase: 'press' | 'release';
     waitingRegister: number;
     activePlayer: number;
     syncBarrier: boolean;
@@ -252,33 +218,6 @@ function stepCycles(cycles: number): void {
   }
 }
 
-function framebufferHash(buffer: Uint8Array): string {
-  let hash = 0x811c9dc5;
-  for (const byte of buffer) {
-    hash ^= byte;
-    hash = Math.imul(hash, 0x01000193) >>> 0;
-  }
-  return hash.toString(16).padStart(8, '0');
-}
-
-function sampleRows(
-  buffer: Uint8Array,
-  xStart: number,
-  yStart: number,
-  width: number,
-  height: number,
-): string[] {
-  const rows: string[] = [];
-  for (let y = 0; y < height; y++) {
-    let row = '';
-    for (let x = 0; x < width; x++) {
-      row += buffer[(yStart + y) * 64 + (xStart + x)] ? '#' : '.';
-    }
-    rows.push(row);
-  }
-  return rows;
-}
-
 function topReturnAddress(): number {
   const state = cpu.getState();
   return state.sp > 0 ? state.stack[state.sp - 1] : -1;
@@ -379,7 +318,7 @@ function scheduleDisplayFit(): void {
 }
 
 function bindLayoutFitObservers(): void {
-  fitObserver = new ResizeObserver(() => {
+  const fitObserver = new ResizeObserver(() => {
     scheduleDisplayFit();
   });
 
@@ -683,9 +622,7 @@ async function runSpacefightersScript(script: SpacefightersScript): Promise<Spac
   };
 }
 
-const KNOWN_ROMS: Record<string, string> = {
-  spacefighters: 'spacefighters',
-};
+const KNOWN_ROMS = new Set(['spacefighters']);
 
 romSelect.addEventListener('change', async () => {
   const value = romSelect.value;
@@ -697,11 +634,10 @@ romSelect.addEventListener('change', async () => {
     return;
   }
 
-  const baseName = KNOWN_ROMS[value];
-  if (!baseName) return;
+  if (!KNOWN_ROMS.has(value)) return;
 
   const base = import.meta.env.BASE_URL ?? '/';
-  const url = `${base}roms/${baseName}.ch8`;
+  const url = `${base}roms/${value}.ch8`;
   const response = await fetch(url);
   if (!response.ok) {
     statusEl.textContent = `Failed to load ROM (${response.status})`;
@@ -709,8 +645,8 @@ romSelect.addEventListener('change', async () => {
   }
 
   const rom = new Uint8Array(await response.arrayBuffer());
-  loadROMToMachine(rom, `${baseName}.ch8`, new Date());
-  await loadSidecar(baseName);
+  loadROMToMachine(rom, `${value}.ch8`, new Date());
+  await loadSidecar(value);
 });
 
 fileInput.addEventListener('change', async () => {

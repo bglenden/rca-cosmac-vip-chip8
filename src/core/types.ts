@@ -15,9 +15,6 @@ export const STACK_SIZE = 16;
 export const NUM_REGISTERS = 16;
 export const NUM_KEYS = 16;
 
-// Timing
-export const TIMER_HZ = 60;
-
 // The built-in 4x5 font sprites for hex digits 0-F (80 bytes total)
 export const FONT_DATA = new Uint8Array([
   0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
@@ -81,8 +78,6 @@ export interface IOBus {
 /** Abstract display — implemented as memory buffer (tests) or Canvas (browser). */
 export interface DisplayBackend {
   clear(): void;
-  /** Draw sprite rows at (x,y). Returns true if any pixel was erased (collision). */
-  drawSprite(x: number, y: number, sprite: Uint8Array): boolean;
   getBuffer(): Uint8Array;
   render(): void;
 }
@@ -103,8 +98,6 @@ export interface InputProvider {
 
 /** Multiplayer provider for PLAYER/SYNC/SHARED opcodes. */
 export interface MultiplayerProvider {
-  getPlayerCount(): number;
-  getLocalPlayer(): number;
   notifySync(): void;
   isSyncComplete(): boolean;
   getInputForPlayer(player: number): InputProvider;

@@ -30,11 +30,6 @@ export class CanvasDisplay implements DisplayBackend {
     this.buffer.fill(0);
   }
 
-  drawSprite(_x: number, _y: number, _sprite: Uint8Array): boolean {
-    // Not used — CPU manages its own display buffer and syncs via getBuffer()
-    return false;
-  }
-
   getBuffer(): Uint8Array {
     return this.buffer;
   }

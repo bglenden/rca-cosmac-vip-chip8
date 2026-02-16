@@ -1,4 +1,5 @@
-export type FxSource = 'init' | 'command' | 'tail' | 'fallback';
+import { type FxSource } from '../../src/spacefighters/script-types.js';
+export type { FxSource };
 
 export interface ScriptInput {
   initialFxKeys: number[];

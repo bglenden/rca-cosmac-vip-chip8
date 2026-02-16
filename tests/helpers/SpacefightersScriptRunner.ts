@@ -5,78 +5,20 @@ import { BufferDisplay } from '../../src/backends/BufferDisplay.js';
 import { MockAudio } from '../../src/backends/MockAudio.js';
 import { MockInput } from '../../src/backends/MockInput.js';
 import { IOBus } from '../../src/core/types.js';
+import { framebufferHash, sampleRows } from '../../src/core/display-utils.js';
+import {
+  SCAN_ROUTINE_START, SCAN_ROUTINE_END, COMMAND_SCAN_CALLER, MAX_SCRIPT_CYCLES,
+  type FxSource, type SpacefightersScript, type FxSnapshot,
+  type ExecutionSnapshot, type SpacefightersScriptResult,
+} from '../../src/spacefighters/script-types.js';
+
+export type { FxSource, SpacefightersScript, FxSnapshot, ExecutionSnapshot, SpacefightersScriptResult };
 
 const CYCLES_PER_TIMER_TICK = 30;
-const SCAN_ROUTINE_START = 0x0508;
-const SCAN_ROUTINE_END = 0x0516;
-const COMMAND_SCAN_CALLER = 0x02fc;
-const MAX_SCRIPT_CYCLES = 3_500_000;
-
-export type FxSource = 'init' | 'command' | 'tail' | 'fallback';
-
-export interface SpacefightersScript {
-  initialFxKeys: number[];
-  commandKeys: number[];
-  tailFxKeys?: number[];
-  executionCheckpointCycles?: number[];
-}
-
-export interface FxSnapshot {
-  index: number;
-  source: FxSource;
-  key: number;
-  startedAt: number;
-  consumedAt: number;
-  pc: number;
-  returnAddress: number;
-  hash: string;
-  marker: string[];
-}
-
-export interface ExecutionSnapshot {
-  cycle: number;
-  pc: number;
-  hash: string;
-  marker: string[];
-}
-
-export interface SpacefightersScriptResult {
-  fxSnapshots: FxSnapshot[];
-  executionSnapshots: ExecutionSnapshot[];
-  scanCommandTriggerCycles: number[];
-  autoLoopPresses: number;
-}
 
 function readOpcode(cpu: CPU, pc: number): number {
   const memory = cpu.getState().memory;
   return (memory[pc] << 8) | memory[pc + 1];
-}
-
-function framebufferHash(buffer: Uint8Array): string {
-  let hash = 0x811c9dc5;
-  for (const byte of buffer) {
-    hash ^= byte;
-    hash = Math.imul(hash, 0x01000193) >>> 0;
-  }
-  return hash.toString(16).padStart(8, '0');
-}
-
-function sampleRows(
-  buffer: Uint8Array,
-  xStart: number,
-  yStart: number,
-  width: number,
-  height: number,
-): string[] {
-  const rows: string[] = [];
-  for (let y = 0; y < height; y++) {
-    let row = '';
-    for (let x = 0; x < width; x++) {
-      row += buffer[(yStart + y) * 64 + (xStart + x)] ? '#' : '.';
-    }
-    rows.push(row);
-  }
-  return rows;
 }
 
 function topReturnAddress(cpu: CPU): number {

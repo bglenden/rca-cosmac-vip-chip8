@@ -48,10 +48,10 @@ This document describes the current implementation state and where to make chang
   - ROM loading (dropdown for known ROMs, file input for custom), frame loop, display auto-fit, keypad tap FSM, sidecar rendering.
   - Exposes `window.__CHIP8_TEST__` to browser tests for deterministic stepping and framebuffer assertions.
 
-### Optional Orchestrator (`src/Interpreter.ts`)
+### Shared Utilities
 
-- Interval-based runner (`setInterval`) for standalone CPU usage outside the browser runtime.
-- Useful for embedding or alternate hosts; browser path currently uses `requestAnimationFrame` loop in `browser/main.ts`.
+- `src/core/display-utils.ts` — `framebufferHash()` (FNV-1a) and `sampleRows()` used by both browser and test runners.
+- `src/spacefighters/script-types.ts` — Shared types and ROM-specific constants for Spacefighters scripted scenarios.
 
 ## COSMAC VIP Behavior
 

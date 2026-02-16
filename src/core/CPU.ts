@@ -138,10 +138,6 @@ export class CPU {
     return this.state;
   }
 
-  setState(state: CPUState): void {
-    this.state = state;
-  }
-
   cloneState(): CPUState {
     return {
       v: new Uint8Array(this.state.v),

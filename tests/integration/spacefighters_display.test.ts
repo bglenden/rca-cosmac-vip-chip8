@@ -6,36 +6,10 @@ import { BufferDisplay } from '../../src/backends/BufferDisplay.js';
 import { MockAudio } from '../../src/backends/MockAudio.js';
 import { MockInput } from '../../src/backends/MockInput.js';
 import { IOBus } from '../../src/core/types.js';
+import { framebufferHash, sampleRows } from '../../src/core/display-utils.js';
 
 const CYCLES_PER_TIMER_TICK = 30;
 const PROMPT_TIMEOUT_CYCLES = 300_000;
-
-function framebufferHash(buffer: Uint8Array): string {
-  let hash = 0x811c9dc5;
-  for (const byte of buffer) {
-    hash ^= byte;
-    hash = Math.imul(hash, 0x01000193) >>> 0;
-  }
-  return hash.toString(16).padStart(8, '0');
-}
-
-function sampleRows(
-  buffer: Uint8Array,
-  xStart: number,
-  yStart: number,
-  width: number,
-  height: number,
-): string[] {
-  const rows: string[] = [];
-  for (let y = 0; y < height; y++) {
-    let row = '';
-    for (let x = 0; x < width; x++) {
-      row += buffer[(yStart + y) * 64 + (xStart + x)] ? '#' : '.';
-    }
-    rows.push(row);
-  }
-  return rows;
-}
 
 function setupGame() {
   const romPath = resolve(__dirname, '../../roms/spacefighters.ch8');
