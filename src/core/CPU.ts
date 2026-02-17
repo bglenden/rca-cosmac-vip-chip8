@@ -258,6 +258,7 @@ export class CPU {
 
   /** 00EE - Return from subroutine. */
   private op_RET(): void {
+    if (this.state.sp === 0) { this.state.halted = true; return; }
     this.state.sp--;
     this.state.pc = this.state.stack[this.state.sp];
   }
@@ -289,6 +290,7 @@ export class CPU {
 
   /** 2nnn - Call subroutine at nnn. */
   private op_CALL(addr: number): void {
+    if (this.state.sp >= STACK_SIZE) { this.state.halted = true; return; }
     this.state.stack[this.state.sp] = this.state.pc;
     this.state.sp++;
     this.state.pc = addr;

@@ -32,6 +32,7 @@ export default defineConfig(({ command }) => ({
         server.middlewares.use((req, res, next) => {
           if (req.url?.startsWith('/roms/')) {
             const filePath = resolve(romsDir, req.url.slice(6));
+            if (!filePath.startsWith(romsDir + '/')) { next(); return; }
             if (existsSync(filePath)) {
               const content = readFileSync(filePath);
               const mime = MIME_TYPES[extname(filePath)] || 'application/octet-stream';
